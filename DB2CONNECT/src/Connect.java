@@ -60,7 +60,7 @@ public class Connect {
 
 	    System.out.println("Finished");
 	}
-	//comment
+	//commen
 	
 	//Convert raw hex data to string
 	public static String convertFromEBCDIC(String s){		
