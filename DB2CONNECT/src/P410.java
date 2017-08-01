@@ -125,8 +125,9 @@ public class P410 {
 		}
 		
 		if(num.startsWith("410124")){
-			if(part.contains("ICN")){
+			if(part.contains("ICN") || (part.contains("960") && !part.contains(" 960 "))){
 				part = part.replace("ICN", "ICON");
+				part = part.replace("960", " 960 ");
 				message = part;
 			}
 		}
@@ -152,7 +153,12 @@ public class P410 {
 		}
 		
 		if(d && message.equals("OK")) message = part;
+		
 		if(ignorePart) message = "OS";
+		
+		if(!ignorePart && part.contains("OBS")){
+			message = "OBS IFO " + Connect.findNumber(part);
+		}
 		
 		return message;
 	}

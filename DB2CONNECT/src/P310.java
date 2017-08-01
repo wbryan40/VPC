@@ -38,10 +38,7 @@ public class P310 {
 			}
 			//commen
 			
-			//REPLACE UNCONVENTIONAL OBSOLETE PART DESCRIPTIONS
-			if(part.toUpperCase().startsWith("OBS") || part.toUpperCase().startsWith("USE")){
-				message = "OBS IFO " + Connect.findNumber(part);
-			}
+
 		}
 		else {
 			ignorePart = true;
@@ -164,6 +161,7 @@ public class P310 {
 		else if (num.startsWith("310122")){
 			if(part.startsWith("RCV 90S SX")) message = "OK";
 			else if (!d) message = "MR";
+			
 		}
 		
 		/* 123
@@ -172,6 +170,12 @@ public class P310 {
 		else if (num.startsWith("310123")){
 			if(part.startsWith("RCV ICON")) message = "OK";
 			else if (!d) message = "MR";
+			
+			if(part.contains("ICN")){
+				part = part.replace("ICN", "ICON");
+				message = part;
+			}
+			
 		}
 		
 		/* 124
@@ -214,6 +218,10 @@ public class P310 {
 		if(ignorePart) message = "OS";
 		
 		//Validate length
+		//REPLACE UNCONVENTIONAL OBSOLETE PART DESCRIPTIONS
+		if(!ignorePart && part.contains("OBS")){
+			message = "OBS IFO " + Connect.findNumber(part);
+		}
 		
 		
 		return message;

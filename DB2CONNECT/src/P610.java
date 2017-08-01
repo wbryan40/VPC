@@ -37,7 +37,16 @@ public class P610 {
 		
 		
 		
+		if(message.contains(",")) message = message.replace(",", "");
 		
+		if(d && message.equals("OK")) message = part;
+		
+		
+		//Validate length
+		//REPLACE UNCONVENTIONAL OBSOLETE PART DESCRIPTIONS
+		if(part.contains("OBS")){
+			message = "OBS IFO " + Connect.findNumber(part);
+		}
 		
 		return message;
 	}

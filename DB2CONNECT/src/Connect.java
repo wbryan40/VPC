@@ -19,9 +19,10 @@ public class Connect {
 			System.exit(0);
 		}
 		prefix = args[0];
-		filter = args[1]; //OS, MR, OK, +30, ALL
+		filter = args[1]; 
+		
+		//OS, MR, OK, +30, ALL
 		/*
-			OS, CD, MR, OK, 30, ALL
 			OS - OUT OF SCOPE
 			CD - CHANGED
 			MR - MANUAL REVISION
@@ -29,10 +30,6 @@ public class Connect {
 			30 - ALL ITEMS AT OR ABOVE 30 CHARACTERS
 			ALL - ALL ITEMS
 		 */
-		
-		//Write to output file   
-		//PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
-	    //System.setOut(out);
 	    
 	    //Load Driver
 	    Class.forName("com.ibm.db2.jcc.DB2Driver");
@@ -50,17 +47,13 @@ public class Connect {
 	    	    rs.CONCUR_READ_ONLY);
 	    
 	    rs = stmt.executeQuery("SELECT ITDSC, ITNBR FROM AMFLIBX.ITMRVA");
-
-	    //filter 310s here
 	    
 	    //pass in string to parse method
 	    createCSV(createAL(args[0]));
 	    
 	    //create CSV File here 
-
 	    System.out.println("Finished");
 	}
-	//commen
 	
 	//Convert raw hex data to string
 	public static String convertFromEBCDIC(String s){		
@@ -102,7 +95,7 @@ public class Connect {
 	public static void createCSV(List<String> lines) throws SQLException{
 		//go through each entry, replace all " with "" and surround entry in "
 		PrintWriter pw = null;
-		try {pw = new PrintWriter(new File("FullData.csv"));} 
+		try {pw = new PrintWriter(new File("Data.csv"));} 
 		catch (FileNotFoundException e) {e.printStackTrace();}
 
 	    Iterator<String> i = lines.iterator();
@@ -117,11 +110,11 @@ public class Connect {
 	}
 	
 	
-/*
-* Creates and arrayList of terms to add to the CSV File
-* 
-* @param section is 310, 410, 510, etc...
-* */	
+	/******************************************************************
+	 * Creates and arrayList of terms to add to the CSV File
+	 * 
+	 * @param section is 310, 410, 510, etc...
+	 ******************************************************************/	
 	public static List<String> createAL(String section) throws SQLException{
 
 		List<String> lines = new ArrayList<String>();
@@ -137,47 +130,47 @@ public class Connect {
 	        row = Integer.toString(rs.getRow());
 	        itemDesc = convertFromEBCDIC(rs.getString("ITDSC"));
 	        itemNum = convertFromEBCDIC(rs.getString("ITNBR"));
-	        String toAdd = "";
+	        String toAdd = ""; 
+	        boolean p30 = false; //more than 30 characters (Top, most strict)
+	        boolean cd =  false; //changed 				  (Less Strict)
+	        boolean g2 =  false; //more than 2 characters  (MR, OK, OS)
 	        
 	        if(itemNum.startsWith(section)) {
 	        	totNum++;
 	        	
 	        	if(section.equals("310")) valid = P310.validate310(itemDesc, itemNum);
-	        	if(section.equals("410")) valid = P410.validate410(itemDesc, itemNum);
-	        	if(section.equals("510")) valid = P510.validate510(itemDesc, itemNum);
+	        	else if(section.equals("410")) valid = P410.validate410(itemDesc, itemNum);
+	        	else if(section.equals("510")) valid = P510.validate510(itemDesc, itemNum);
+	        	else if(section.equals("610")) valid = P610.validate610(itemDesc, itemNum);
 	        	
+	        	if(valid.contains("MOD") && !valid.contains(" MOD")) valid = valid.replace("MOD", " MOD");
 	        	valid = valid.replace("  ", " ");
 	        	valid = valid.trim();
 	        	
 		        if(itemDesc.contains("\"")){
 		        	itemDesc = itemDesc.replace("\"", "\"\"");
 		        }
+		        
+		        //SET BOOLEANS
+		        p30 = valid.length()>30 && (filter.equals("+30") || filter.equals("ALL"));
+		        cd = filter.equals("CD") || filter.equals("ALL");
+		        g2 = valid.length()>2 || filter.equals("ALL");
+		        
 
-		        if(valid.equals(filter)){
-		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\",,"+filter;
+		        if(valid.length()==2){
+		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\",,"+valid;
 		        	lines.add(toAdd + "\n");
 		        }
-		        else if(valid.length()>=30 && (filter.equals("ALL") || filter.equals("+30"))){
+		        else if(p30){
 		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + "," + valid+",+30";
 		        	lines.add(toAdd + "\n");
 		        }
-		        else if(filter.equals("ALL") || filter.equals("CD")){
-		        	
-		        	if(valid.length()==2 && !filter.equals("CD")){
-		        		toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + ",," + valid;
-		        		lines.add(toAdd + "\n");
-		        	}
-		        	else if ((filter.equals("CD")||filter.equals("ALL")) && valid.length()>2){
-		        		toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + "," + valid + ",CD";
-		        		lines.add(toAdd + "\n");
-		        	}
+		        else if(cd || g2){
+		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + "," + valid + ",CD";
+	        		lines.add(toAdd + "\n");
 		        }
 	        }
 	    }
-//	    System.out.println("Total valid: " + numGood);
-//	    System.out.println("Total terms: " + totNum);
-//	    Double percent = (numGood/totNum) * 100;
-//	    System.out.println("Percentage correct: "+ percent.intValue() + "%");
 	    
 	    return lines;
 	}

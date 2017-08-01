@@ -5,6 +5,7 @@ public class P510 {
 		
 		String message = "";
 		boolean d = false;
+		boolean ignorePart = false;
 		if(num.startsWith("510104")
 				||num.startsWith("510108")
 				||num.startsWith("510109")
@@ -39,6 +40,9 @@ public class P510 {
 				d = true;
 			}
 		}
+		else{
+			ignorePart = true;
+		}
 		
 		String[] a = part.split(" ");
 		
@@ -66,19 +70,25 @@ public class P510 {
 			} else message = "MR";
 		}
 
-//109		
+//108		
 		if(num.startsWith("510108")){
 			if(part.contains("MOD") && (part.contains("90S") || part.contains("ITA"))){
 				//510108251
 				//510108242
 				//510108275       
-				if(!part.startsWith("MOD ITA 90S")){
+				if(!part.startsWith("MOD ITA 90S") && !part.contains("30S")){
 					part = part.replace(" 90 ", " 90S ");
 					part = part.replace("90S", "");
 					part = part.replace("ITA", "");
 					part = part.replace("MOD ", "");
 					message = "MOD ITA 90S " + part;
 				}
+				else{
+					message = "OK";
+				}
+			}
+			else{
+				message = "MR";
 			}
 		}
 
@@ -88,9 +98,15 @@ public class P510 {
 			if(part.startsWith("MOD AC")){
 				if(!a[2].equals("90S")){
 					//PART OUT OF ORDER
+					//510109162
+					if(part.contains("30S") || part.contains("40S") || part.contains("50S")){
+						part = part.replace("MOD ", "");
+						part = part.replace("AC ", "");
+						message = "MOD AC " + part;
+					}
 					//510109300
 					//510109297
-					if(part.contains("90S")){
+					else if(part.contains("90S")){
 						part = part.replace("90S ", "");
 						part = part.replace("MOD ", "");
 						part = part.replace("AC ", "");
@@ -125,17 +141,32 @@ public class P510 {
 		if(num.startsWith("510127")){
 			if(part.startsWith("+WDA")){
 				//510127580
-				message = part.replace("+WDA", "WDA");
+				part = part.replace("+WDA", "WDA");
+				message = part;
+			}
+			
+			//510127313
+			if(part.startsWith("WDA") && !part.startsWith("WDA VXI ")){
+				part = part.replace("WDA", "WDA VXI");
+				message = part;
+			}
+			
+			//510127355
+			//510127316
+			if(part.contains("VXI TECH") || part.contains("VXITECH")){
+				part = part.replace("VXI TECH", "VTITECH");
+				part = part.replace("VXITECH", "VTITECH");
+				message = part;
 			}
 		}
 	
 //133		
 		if(num.startsWith("510133")){
-			if(a[2].equals("2100")){
+			if(part.contains("2100") && !part.contains("2100S")){
 				//510133122
 				message = part.replace("2100", "2100S");
 			}
-			else if(!a[2].equals("2100S")){
+			else if(!a[2].equals("2100S") && !part.contains("2100")){
 				//510133128
 				message = "MOD RCV 2100S " + part.substring(8);
 			}
@@ -151,16 +182,39 @@ public class P510 {
 		}
 		
 //140, 150, 160, 161, 170,171  CHECK OVER WITH ENGINEERING
-		if(num.startsWith("510151")){
-			if(part.startsWith("MOD ITA") && a[2].equals("QPDL")){
-				message = part.replace("QPDL", "90S QPDL");
+		if(num.startsWith("510150") || num.startsWith("510151")){
+			if(part.contains("QPDL")){
+				part = part.replace("QPDL", "");
+				message = part;
 			}
+			
+			if(part.startsWith("MOD RCV") && !part.contains("90S")){
+				//510150202
+				part = part.replace("MOD RCV", "MOD RCV 90S ");
+				message = part;
+			}
+			
+			if(part.startsWith("MOD ITA") && !part.contains("90S")){
+				//510150202
+				part = part.replace("MOD ITA", "MOD ITA 90S ");
+				message = part;
+			}
+			
 		}
 		
 //180 & 181 ALL GOOD		
 		if(message.contains(",")){
 			message = message.replace(",", " ");
 		}
+		
+		//REPLACE UNCONVENTIONAL OBSOLETE PART DESCRIPTIONS
+		if(!ignorePart && part.contains("OBS")){
+			message = "OBS IFO " + Connect.findNumber(part);
+		}
+		
+		if(d && message.equals("OK")) message = part;
+		
+		if(ignorePart) message = "OS";
 		
 		return message;
 			
