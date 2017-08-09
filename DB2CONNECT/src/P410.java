@@ -1,6 +1,9 @@
-//MR = manual revision
 public class P410 {
-	public static String validate410(String part, String num){
+	public static Part validate410(Part p){
+		
+		String part = p.getDesc();
+		String num = p.getNum();
+		
 		
 		String message = "";
 		boolean d = false;
@@ -19,14 +22,12 @@ public class P410 {
 			//REMOVE LEADING $ AND #
 			if(part.startsWith("$") || part.startsWith("#") || part.startsWith("~")){
 				part = part.substring(1);
-				message = part;
 				d = true;
 			}
 			
 			//CAPITALIZE PART IF NOT ALREADY
 			if(!part.equals(part.toUpperCase()) && !part.contains("i1") && !part.contains("i2")){
 				part = part.toUpperCase();
-				message = part;
 				d = true;
 			}
 		}
@@ -36,10 +37,10 @@ public class P410 {
 		
 		String[] a = part.split(" ");
 		
-		if(!d) message="OK";
+		if(!d) p.setCode("OK");
 		if(num.startsWith("410104")){
 			if(!a[0].equals("ITA") || !a[1].equals("90S")){
-				message = "MR";
+				p.setCode("MR");
 			}
 		}
 		
@@ -48,20 +49,20 @@ public class P410 {
 					&& !a[0].equals("PRTV")
 					&& !a[0].equals("ENCL") 
 					&& !a[0].equals("ID")){
-				message = "MR";
+				p.setCode("MR");
 			}
 		}
 		
 		if(num.startsWith("410113")){
 			if(!part.startsWith("ID 80S")){
-				message = "MR";
+				p.setCode("MR");
 			}
 		}
 		
 		if(num.startsWith("410114")){
 			if(!part.startsWith("ENCL ITA")){
 				if(part.startsWith("ITA")){
-					message = "ENCL " + part;
+					part = "ENCL " + part;
 				}
 			}
 		}
@@ -95,11 +96,9 @@ public class P410 {
 					if(a[1].equals("20X")){
 						part = part.replace("20X","G20X");
 					}
-					
-					message = part;
 				}
 				else{
-					message = "OK";
+					p.setCode("OK");
 				}
 			}
 		}
@@ -109,57 +108,76 @@ public class P410 {
 		if(num.startsWith("410123")){
 			if(part.contains("ICN")){
 				part = part.replace("ICN", "ICON");
-				message = part;
 			}
 			
 			if(part.startsWith("ITA WRD ICON")){
 				//410123455
-				message = "ITA ICON WRD " + part.substring(14);
+				part = "ITA ICON WRD " + part.substring(14);
 			}
 			else if(part.startsWith("ITA ICON EMI WRD")){
 				//410123791
-				message = "ITA ICON WRD EMI " + part.substring(17);
+				part = "ITA ICON WRD EMI " + part.substring(17);
 			}
 			
-			if(!part.startsWith("ITA")) message = "MR";			
+			if(!part.startsWith("ITA")) p.setCode("MR");;			
 		}
 		
 		if(num.startsWith("410124")){
 			if(part.contains("ICN") || (part.contains("960") && !part.contains(" 960 "))){
 				part = part.replace("ICN", "ICON");
 				part = part.replace("960", " 960 ");
-				message = part;
 			}
 		}
 		
 		if(num.startsWith("410128")){
 			if(part.startsWith("ITA WRD i2")){
 				//410130424
-				message = "ITA i2 WRD " + part.substring(11);
+				part = "ITA i2 WRD " + part.substring(11);
 			}
-			
-			//if(a[2].equals("EMI") && a[3].equals("WRD")){
-				//REMOVE EMI?
-			//}
 
-			if(!part.startsWith("ITA")) message = "MR";	
+			if(!part.startsWith("ITA")) p.setCode("MR");;	
 		}
 		
-		//410130 REVISE
+		if(part.contains(",")) part = part.replace(",", "");
+    	if(part.contains("MOD") && !part.contains(" MOD")) part = part.replace("MOD", " MOD");
 		
-		
-		if(message.contains(",")){
-			message = message.replace(",", "");
+		if(part.contains("90S") && part.contains("MOD") && (part.contains("25") || part.contains("50") || part.contains("75"))){
+			part = part.replace("75", "9075");
+			part = part.replace("50", "9050");
+			part = part.replace("25", "9025");
+			part = part.replace("MOD", "");
+			part = part.replace("90S", "");
+		}
+		else if (part.contains("90S")){
+			part = part.replace("90S", "");
 		}
 		
-		if(d && message.equals("OK")) message = part;
-		
-		if(ignorePart) message = "OS";
-		
-		if(!ignorePart && part.contains("OBS")){
-			message = "OBS IFO " + Connect.findNumber(part);
+		if(part.contains("OBS")){
+			if(part.equalsIgnoreCase("OBS")||part.equalsIgnoreCase("OBSOLETE")){
+				part = "OBS";
+			}
+			else{
+				part = "OBS IFO " + Connect.findNumber(part);
+			}
 		}
 		
-		return message;
+		part = part.trim();
+    	part = part.replace("  ", " ");
+    	part = part.replace("  ", " ");
+
+		if(!part.equals(p.getDesc())){
+			p.setNewDesc(part);
+			p.setCode("CD");
+		}
+		
+		if(ignorePart) {
+			p.setCode("OS");
+			p.setNewDesc("");
+		}
+		
+		if(part.contains("ENCL")) p.setCode("MR");
+		if(p.getNewDesc().length() > 30) p.setCode("30");
+		
+		return p;
 	}
 }

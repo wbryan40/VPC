@@ -9,17 +9,16 @@ import com.ibm.db2.jcc.am.Connection;
 public class Connect {
     static Statement stmt;
     static ResultSet rs;
+    static Connection dbConn;
     static String prefix;
-    static String filter;
 
-	public static void main(String[] args) throws SQLException, ClassNotFoundException, FileNotFoundException{		
+	public static void main(String[] args) throws SQLException, ClassNotFoundException, FileNotFoundException, UnsupportedEncodingException{		
 		
 		if(args[0]==null || args[1]==null){
 			System.err.println("Please input proper parameters");
 			System.exit(0);
 		}
 		prefix = args[0];
-		filter = args[1]; 
 		
 		//OS, MR, OK, +30, ALL
 		/*
@@ -36,15 +35,15 @@ public class Connect {
 	    System.out.println("Driver loaded");
 
 	    //Establish database connection
-	    Connection dbConn = (Connection) DriverManager.getConnection("jdbc:db2://vpcsys:446/S06ad634", "jstegura", "jspassw05");
+	   dbConn = (Connection) DriverManager.getConnection("jdbc:db2://vpcsys:446/S06ad634", "jstegura", "jspassw05");
 	    if (dbConn != null){
 	    	System.out.println("DB2 Database Connected");
 	    } else {
 	    	System.out.println("DB2 Connection Failed");
 	    }
 	    
-	    stmt = dbConn.createStatement(rs.TYPE_SCROLL_INSENSITIVE,
-	    	    rs.CONCUR_READ_ONLY);
+	    stmt = dbConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+	    		ResultSet.CONCUR_UPDATABLE);
 	    
 	    rs = stmt.executeQuery("SELECT ITDSC, ITNBR FROM AMFLIBX.ITMRVA");
 	    
@@ -56,13 +55,24 @@ public class Connect {
 	}
 	
 	//Convert raw hex data to string
-	public static String convertFromEBCDIC(String s){		
-		try {
-			byte[] bytes = DatatypeConverter.parseHexBinary(s);
-			return new String(bytes, "CP1047");
-		} catch (Exception e) {
-			return s;
-		}
+	public static String convertFromEBCDIC(String s) throws UnsupportedEncodingException{		
+		byte[] bytes = DatatypeConverter.parseHexBinary(s);
+		return new String(bytes, "CP1047");
+	}
+	
+	public static String convertToEBCDIC(String s) throws UnsupportedEncodingException{		
+		return bytesToHex(s.getBytes("Cp1047"));
+	}
+	
+	public static String bytesToHex(byte[] bytes) {
+		char[] hexArray = "0123456789abcdef".toCharArray();
+		char[] hexChars = new char[bytes.length * 2];
+	    for ( int j = 0; j < bytes.length; j++ ) {
+	        int v = bytes[j] & 0xFF;
+	        hexChars[j * 2] = hexArray[v >>> 4];
+	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+	    }
+	    return new String(hexChars);
 	}
 	
 	//Finds first occurrence of a number in a given string
@@ -86,6 +96,9 @@ public class Connect {
 			return false;
 		}
 	}
+	
+
+	
 	
 	/*******************************************************************
 	 * Creates a CSV File to display relevant information from the 310s
@@ -114,14 +127,19 @@ public class Connect {
 	 * Creates and arrayList of terms to add to the CSV File
 	 * 
 	 * @param section is 310, 410, 510, etc...
+	 * @throws UnsupportedEncodingException 
 	 ******************************************************************/	
-	public static List<String> createAL(String section) throws SQLException{
+	public static List<String> createAL(String section) throws SQLException, UnsupportedEncodingException{
 
 		List<String> lines = new ArrayList<String>();
 		String valid = "";
 	    String row;
 	    String itemDesc;
 	    String itemNum;
+	    String toAdd;
+	    String newDesc;
+	    String code;
+		Part p;
 	    
 	    double numGood = 0;
 	    double totNum = 0;
@@ -130,53 +148,67 @@ public class Connect {
 	        row = Integer.toString(rs.getRow());
 	        itemDesc = convertFromEBCDIC(rs.getString("ITDSC"));
 	        itemNum = convertFromEBCDIC(rs.getString("ITNBR"));
-	        String toAdd = ""; 
-	        boolean p30 = false; //more than 30 characters (Top, most strict)
-	        boolean cd =  false; //changed 				  (Less Strict)
-	        boolean g2 =  false; //more than 2 characters  (MR, OK, OS)
+	        toAdd = ""; 
+	        
+	        
+	        p = new Part(itemNum,itemDesc);
+	        
 	        
 	        if(itemNum.startsWith(section)) {
 	        	totNum++;
 	        	
-	        	if(section.equals("310")) valid = P310.validate310(itemDesc, itemNum);
-	        	else if(section.equals("410")) valid = P410.validate410(itemDesc, itemNum);
-	        	else if(section.equals("510")) valid = P510.validate510(itemDesc, itemNum);
-	        	else if(section.equals("610")) valid = P610.validate610(itemDesc, itemNum);
+	        	if(section.equals("310")) p = P310.validate310(p);
+	        	if(section.equals("410")) p = P410.validate410(p);
+	        	if(section.equals("510")) p = P510.validate510(p);
+	        	if(section.equals("610")) p = P610.validate610(p);
 	        	
-	        	if(valid.contains("MOD") && !valid.contains(" MOD")) valid = valid.replace("MOD", " MOD");
-	        	valid = valid.replace("  ", " ");
-	        	valid = valid.trim();
+	        	newDesc = p.getNewDesc();
+	        	code = p.getCode();
 	        	
 		        if(itemDesc.contains("\"")){
 		        	itemDesc = itemDesc.replace("\"", "\"\"");
 		        }
 		        
-		        //SET BOOLEANS
-		        p30 = valid.length()>30 && (filter.equals("+30") || filter.equals("ALL"));
-		        cd = filter.equals("CD") || filter.equals("ALL");
-		        g2 = valid.length()>2 || filter.equals("ALL");
-		        
-
-		        if(valid.length()==2){
-		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\",,"+valid;
-		        	lines.add(toAdd + "\n");
-		        }
-		        else if(p30){
-		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + "," + valid+",+30";
-		        	lines.add(toAdd + "\n");
-		        }
-		        else if(cd || g2){
-		        	toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + "," + valid + ",CD";
-	        		lines.add(toAdd + "\n");
-		        }
+		        toAdd = "\"" + row + "\",\"" + itemNum +"\",\""+ itemDesc + "\"" + "," + newDesc + "," + code;
+	        	lines.add(toAdd + "\n");   
 	        }
-	    }
+	    }    
 	    
 	    return lines;
 	}
 	
+	
+	public static void updateRS(String section) throws SQLException, UnsupportedEncodingException{
+		String itemDesc = "";
+		String newDesc = "";
+		String itemNum = "";
+		Part p;
+		
+        while (rs.next()) {
+        	itemDesc = convertFromEBCDIC(rs.getString("ITDSC"));;
+        	itemNum = convertFromEBCDIC(rs.getString("ITNBR"));
+        	
+        	p = new Part(itemNum,itemDesc);
+        	
+        	if(section.equals("310")) p = P310.validate310(p);
+        	if(section.equals("410")) p = P410.validate410(p);
+        	if(section.equals("510")) p = P510.validate510(p);
+        	if(section.equals("610")) p = P610.validate610(p);
+        	
+        	newDesc = p.getNewDesc();
+        	
+        	
+        	if(!itemDesc.equals(newDesc)){
+	        	newDesc = convertToEBCDIC(newDesc);
+	        	rs.updateString("ITDSC", newDesc);
+	            rs.updateRow();
+        	}
+        }
+	}
+}	
 
-}
+
+
 
 
 

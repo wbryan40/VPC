@@ -4,9 +4,12 @@ import java.util.Arrays;
 public class P310 {
 
 	//Check if entry is valid change to return correction string
-	public static String validate310(String part, String num){
-		String message = "";
-		boolean d = false;
+	public static Part validate310(Part p){
+		
+		String part = p.getDesc();
+		String num = p.getNum();
+		
+		boolean pfx = false;
 		boolean ignorePart = false;
 		if(num.startsWith("310104")
 				||num.startsWith("310113")
@@ -20,25 +23,17 @@ public class P310 {
 				||num.startsWith("310130")
 				){
 			
-			//REMOVE WHITESPACE
-			
-			
 			//REMOVE LEADING CHARACTERS
 			if(part.startsWith("$") || part.startsWith("#")) {
 				part = part.substring(1);
-				message = part;
-				d = true;
+				pfx = true;
 			}
 			
 			//CAPITALIZE PART FOR STANDARDIZATION
 			if(!part.equals(part.toUpperCase())){
 				part = part.toUpperCase();
-				message = part;
-				d = true;
+				pfx = true;
 			}
-			//commen
-			
-
 		}
 		else {
 			ignorePart = true;
@@ -56,22 +51,22 @@ public class P310 {
 		 * RCV 90S X MOD
 		 * RCV XXS QT X MOD      
 		 * */
-		if(!d) message="OK";
+		if(!pfx) p.setCode("OK");
 		if(num.startsWith("310104")){
 			if(a[0].equals("RCV")){
 				if(a[1].equals("90S")){
 					//&& isNumber(a[3]) && a[4].equals("MOD")
 					if(part.contains(" QT")){
-						message = part.replace(" QT", "");
+						part = part.replace(" QT", "");
 					}
 				}
 				else if(a[1].equals("QT") && a[2].equals("90S")){
-					message = new String("RCV 90S QT "+ part.substring(11));
+					part = new String("RCV 90S QT "+ part.substring(11));
 				}
-				else message = "MR";
+				else p.setCode("MR");;
 			}
 			else {
-				message = "MR";
+				p.setCode("MR");;
 			}
 		}		
 
@@ -86,11 +81,11 @@ public class P310 {
 			//310113317
 			if(part.startsWith("VHMF")){
 				if(part.contains("RCV")){
-					message = part.replace("RCV ","");
+					part = part.replace("RCV ","");
 				}
 			}
 			else {
-				message = "MR";
+				 p.setCode("MR");
 			}
 		}
 		
@@ -98,7 +93,7 @@ public class P310 {
 		 * Only 6 - Inspect separately
 		 * */
 		else if (num.startsWith("310114")){
-			message = "MR";
+			p.setCode("MR");
 		}
 		
 		/* 115
@@ -107,9 +102,9 @@ public class P310 {
 		 * */
 		else if (num.startsWith("310115")){
 			if(part.startsWith("RCV 80S")){
-				message = "OK";
+				p.setCode("OK");
 			}
-			else message = "MR"; 
+			else p.setCode("MR");; 
 		}
 		
 		/* 120
@@ -146,12 +141,8 @@ public class P310 {
 					if(a[1].equals("20X")){
 						part = part.replace("20X","G20X");
 					}
-					
-					message = part;
 				}
-				else{
-					message = "OK";
-				}
+				else p.setCode("OK");
 			}
 		}
 		
@@ -159,8 +150,8 @@ public class P310 {
 		 * RCV 90S SX
 		 * */
 		else if (num.startsWith("310122")){
-			if(part.startsWith("RCV 90S SX")) message = "OK";
-			else if (!d) message = "MR";
+			if(part.startsWith("RCV 90S SX")) p.setCode("OK");
+			else if (!pfx) p.setCode("MR");;
 			
 		}
 		
@@ -168,12 +159,11 @@ public class P310 {
 		 * RCV ICON
 		 * */
 		else if (num.startsWith("310123")){
-			if(part.startsWith("RCV ICON")) message = "OK";
-			else if (!d) message = "MR";
+			if(part.startsWith("RCV ICON")) p.setCode("OK");
+			else if (!pfx) p.setCode("MR");
 			
 			if(part.contains("ICN")){
 				part = part.replace("ICN", "ICON");
-				message = part;
 			}
 			
 		}
@@ -182,10 +172,10 @@ public class P310 {
 		 * RCV ICON 960
 		 * */
 		else if (num.startsWith("310124")){
-			if(part.startsWith("RCV ICN 960")){
-				message = "RCV ICON 960 " + part.substring(12);
+			if(part.contains("ICN")){
+				part = part.replace("ICN", "ICON");
 			}
-			else if(!d) message = "MR";
+			else if(!pfx) p.setCode("MR");
 		}
 		
 		/* 128
@@ -194,9 +184,9 @@ public class P310 {
 		else if (num.startsWith("310128")){
 			
 			if(part.startsWith("RCV i1 WRD")){
-				message="OK";				
+				p.setCode("OK");				
 			}
-			else if(!d) message="MR";
+			else if(!pfx) p.setCode("MR");
 		}
 		
 		/* 130
@@ -205,26 +195,55 @@ public class P310 {
 		else if (num.startsWith("310130")){
 			
 			if(part.startsWith("RCV i2 MX EMI") || part.startsWith("RCV i2 WRD")){
-				message="OK";				
+				p.setCode("OK");				
 			}
-			else if(!d)message="MR";
-			
+			else if(!pfx) p.setCode("MR");				
 		}
 		
-		if(message.contains(",")) message = message.replace(",", "");
 		
-		if(d && message.equals("OK")) message = part;
+		if(part.contains(",")) part = part.replace(",", "");
+    	if(part.contains("MOD") && !part.contains(" MOD")) part = part.replace("MOD", " MOD");
 		
-		if(ignorePart) message = "OS";
+		if(part.contains("90S") && part.contains("MOD") && (part.contains("25") || part.contains("50") || part.contains("75"))){
+			part = part.replace("75", "9075");
+			part = part.replace("50", "9050");
+			part = part.replace("25", "9025");
+			part = part.replace("MOD", "");
+			part = part.replace("90S", "");
+		}
+		else if (part.contains("90S")){
+			part = part.replace("90S", "");
+		}
+		
 		
 		//Validate length
 		//REPLACE UNCONVENTIONAL OBSOLETE PART DESCRIPTIONS
-		if(!ignorePart && part.contains("OBS")){
-			message = "OBS IFO " + Connect.findNumber(part);
+		if(part.contains("OBS")){
+			if(part.equalsIgnoreCase("OBS")||part.equalsIgnoreCase("OBSOLETE")){
+				part = "OBS";
+			}
+			else{
+				part = "OBS IFO " + Connect.findNumber(part);
+			}
+		}
+
+		part = part.trim();
+    	part = part.replace("  ", " ");
+    	part = part.replace("  ", " ");
+    	
+		if(!part.equals(p.getDesc())){
+			p.setNewDesc(part);
+			p.setCode("CD");
 		}
 		
+		if(ignorePart) {
+			p.setCode("OS");
+			p.setNewDesc("");
+		}
 		
-		return message;
+		if(p.getNewDesc().length() > 30) p.setCode("30");
+		
+		return p;
 	}
 	
 }
