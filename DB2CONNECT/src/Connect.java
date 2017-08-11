@@ -14,7 +14,7 @@ public class Connect {
 
 	public static void main(String[] args) throws SQLException, ClassNotFoundException, FileNotFoundException, UnsupportedEncodingException{		
 		
-		if(args[0]==null || args[1]==null){
+		if(args[0]==null){
 			System.err.println("Please input proper parameters");
 			System.exit(0);
 		}
@@ -144,6 +144,7 @@ public class Connect {
 	    double numGood = 0;
 	    double totNum = 0;
 	    
+	    rs.first();
 	    while (rs.next()) {
 	        row = Integer.toString(rs.getRow());
 	        itemDesc = convertFromEBCDIC(rs.getString("ITDSC"));
@@ -184,6 +185,7 @@ public class Connect {
 		String itemNum = "";
 		Part p;
 		
+		rs.first();
         while (rs.next()) {
         	itemDesc = convertFromEBCDIC(rs.getString("ITDSC"));;
         	itemNum = convertFromEBCDIC(rs.getString("ITNBR"));
@@ -197,8 +199,8 @@ public class Connect {
         	
         	newDesc = p.getNewDesc();
         	
-        	
-        	if(!itemDesc.equals(newDesc)){
+        	//not 30, MR, OS, or OK
+        	if(!itemDesc.equals(newDesc) && p.getCode().equals("CD")){
 	        	newDesc = convertToEBCDIC(newDesc);
 	        	rs.updateString("ITDSC", newDesc);
 	            rs.updateRow();

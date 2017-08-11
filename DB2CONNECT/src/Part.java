@@ -33,7 +33,7 @@ public class Part {
 	
 	public String getNewDesc(){
 		return newDesc;
-	}
+	} 
 	
 	
 	

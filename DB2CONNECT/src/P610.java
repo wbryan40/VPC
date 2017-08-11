@@ -1,4 +1,3 @@
-
 public class P610 {
 	
 	public static Part validate610(Part p){
@@ -6,7 +5,6 @@ public class P610 {
 		String num = p.getNum();
 		String part = p.getDesc();
 		
-		boolean d = false;
 		boolean ignorePart = false;
 		
 		if(part.startsWith("610105") ||
@@ -46,7 +44,7 @@ public class P610 {
 		
 		if(part.startsWith("$") || part.startsWith("#") || part.startsWith("~")){
 			part = part.substring(1);
-			d = true;
+		
 		}	
 		
 		//CAPITALIZE PART IF NOT ALREADY
@@ -54,26 +52,75 @@ public class P610 {
 			part = part.toUpperCase();
 			part = part.replace("I1", "i1");
 			part = part.replace("I2", "i2");
-			d = true;
+		
 		}
 		
-		String[] a = part.split(" ");
 		
-		if(!d) p.setCode("MR");		
+		if(num.startsWith("610103")){
+			if(!part.startsWith("CNT ITA CX") && !part.startsWith("CNT ITA MCX") && !part.startsWith("OBS")){
+				p.setCode("MR");
+			}
+		}
 		
+		if(num.startsWith("610104")){
+			if(part.contains("90S")) p.setCode("MR");
+		}
 		
+		if(num.startsWith("610110")){
+			
+			if(part.contains("AU")) p.setCode("MR");
+			
+			if(part.contains("CNT") && (part.contains("ML") || part.contains("ITA")) && part.contains("SIG") && !part.contains("FML")){
+				
+				part = part.replace("CNT", "");
+				part = part.replace("ML", "");
+				part = part.replace("ITA", "");
+				part = part.replace("TRIPDL", "");
+				part = part.replace("SIG", "");
+				part = "CNT ITA TPDL"+part;
+			}
+			else if(part.contains("CNT") && (part.contains("FML")||part.contains("RCV")) && (part.contains("SIG")||part.contains("TRIPDL"))){
+				part = part.replace("CNT", "");
+				part = part.replace("FML", "");
+				part = part.replace("RCV", "");
+				part = part.replace("TRIPDL", "");
+				part = part.replace("SIG", "");
+				part = "CNT RCV TPDL"+part;
+			}
+			else if(part.contains("TRIPDL") || part.contains("TRPDL") ){
+				part = part.replace("TRIPDL", "TPDL");
+				part = part.replace("TRPDL", "TPDL");
+			}
+			else if(part.contains("ML")){
+				part = part.replace("FML", "RCV");
+				part = part.replace("ML", "ITA");
+			}
+		}
 		
+		if(num.startsWith("610116")||
+		   num.startsWith("610142")||
+		   num.startsWith("610143")){
+			p.setCode("OK");
+		}
 		
+		if(num.startsWith("610113")||
+		   num.startsWith("610123")||
+		   num.startsWith("610131")||
+		   num.startsWith("610132")){
+			p.setCode("MR");
+		}
 		
+		if(num.startsWith("610138")){
+			
+		}
 		
+		if(part.contains("MAU")){
+			part = part.replace("MAU", "µAU");
+		}
+		else if(part.contains("AU")){
+			part = part.replace("AU", "µAU");
+		}
 		
-		//INSERT CLEANUP CODE HERE
-		
-		
-		
-		
-		
-
 		
 		if(part.contains(",")) part = part.replace(",", "");
     	if(part.contains("MOD") && !part.contains(" MOD")) part = part.replace("MOD", " MOD");
@@ -88,7 +135,7 @@ public class P610 {
 
 		
 		if(part.contains("OBS")){
-			if(part.equalsIgnoreCase("OBS")||part.equalsIgnoreCase("OBSOLETE")){
+			if(part.trim().equals("OBS")||part.trim().equals("OBSOLETE")){
 				part = "OBS";
 			}
 			else{
@@ -100,9 +147,12 @@ public class P610 {
     	part = part.replace("  ", " ");
     	part = part.replace("  ", " ");
 
-		if(!part.equals(p.getDesc())){
+		if(!part.equals(p.getDesc().trim())){
 			p.setNewDesc(part);
-			p.setCode("CD");
+			if(!p.getCode().equals("MR")) p.setCode("CD");
+		}
+		else{
+			p.setCode("OK");
 		}
 		
 		if(ignorePart) {

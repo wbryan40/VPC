@@ -231,7 +231,7 @@ public class P310 {
     	part = part.replace("  ", " ");
     	part = part.replace("  ", " ");
     	
-		if(!part.equals(p.getDesc())){
+		if(!part.equals(p.getDesc().trim())){
 			p.setNewDesc(part);
 			p.setCode("CD");
 		}
