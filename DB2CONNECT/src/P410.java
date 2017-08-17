@@ -158,6 +158,7 @@ public class P410 {
 			}
 			else{
 				part = "OBS IFO " + Connect.findNumber(part);
+				if(part.equals("OBS IFO ")) part = "OBS";
 			}
 		}
 		

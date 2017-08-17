@@ -115,10 +115,11 @@ public class P610 {
 		}
 		
 		if(part.contains("MAU")){
-			part = part.replace("MAU", "µAU");
+			part = part.replace("MAU", "µ");
 		}
 		else if(part.contains("AU")){
-			part = part.replace("AU", "µAU");
+			part = part.replace("AU", "µ");
+			p.setCode("MR");
 		}
 		
 		
@@ -140,6 +141,7 @@ public class P610 {
 			}
 			else{
 				part = "OBS IFO " + Connect.findNumber(part);
+				if(part.equals("OBS IFO ")) part = "OBS";
 			}
 		}
 		
@@ -151,9 +153,6 @@ public class P610 {
 			p.setNewDesc(part);
 			if(!p.getCode().equals("MR")) p.setCode("CD");
 		}
-		else{
-			p.setCode("OK");
-		}
 		
 		if(ignorePart) {
 			p.setCode("OS");
@@ -162,6 +161,9 @@ public class P610 {
 		
 		if(part.contains("ENCL")) p.setCode("MR");
 		if(p.getNewDesc().length() > 30) p.setCode("30");
+		
+		
+		if(p.getCode().length() == 0) p.setCode("OK");
 		
 		return p;
 	}

@@ -194,6 +194,9 @@ public class P510 {
 				part = part.replace("MOD ITA", "MOD ITA 90S ");
 			}
 			
+			if(part.contains("OBS")){
+				p.setCode("MR");
+			}
 		}
 		
 //180 & 181 ALL GOOD		
@@ -217,6 +220,7 @@ public class P510 {
 			}
 			else{
 				part = "OBS IFO " + Connect.findNumber(part);
+				if(part.equals("OBS IFO ")) part = "OBS";
 			}
 		}
 		part = part.trim();
